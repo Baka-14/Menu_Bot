@@ -1,5 +1,7 @@
 from http import client
 #import discord  
+import os
+import aiohttp
 import pandas as pd 
 import hikari
 import datetime
@@ -69,7 +71,7 @@ async def on_message(event: hikari.MessageCreateEvent) -> None:
     #    await bot.rest.create_message(channel_id,"@everyone")
 
     if event.content=="!ping":
-        await bot.rest.create_message(channel_id,"@everyone",mentions_everyone=True)
+        await bot.rest.create_message(channel_id,"ping")
 
     elif event.content == "!food":
         MEAL = "BREAKFAST"
@@ -83,7 +85,7 @@ async def on_message(event: hikari.MessageCreateEvent) -> None:
         for item in menu[ days[DAY] ][meals[MEAL]]:
             answer = answer +  item+ "\n"
         answer+= "```"
-        await bot.rest.create_message(channel_id,answer+"@everyone",user_mentions=True)
+        await bot.rest.create_message(channel_id,answer+"@everyone",mentions_everyone=True)
 
     elif(event.content[0] == "!"):
         MEAL = (event.content)[1:].upper()
@@ -91,9 +93,47 @@ async def on_message(event: hikari.MessageCreateEvent) -> None:
             answer = ""
             for item in menu[ days[DAY] ][meals[MEAL]]:
                 answer = answer +  item+ "\n"
-            await bot.rest.create_message(channel_id,answer+"<@everyone>")
+            await bot.rest.create_message(channel_id,answer+"@everyone",mentions_everyone=True)
         else:
             await bot.rest.create_message(channel_id,"Did you ping me?! I don't understand the command tho.")
+
+
+@bot.command
+@lightbulb.command("ping", description="Whether the bot is working")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def ping(ctx: lightbulb.Context) -> None:
+    await ctx.respond(f"Pong! Latency: {bot.heartbeat_latency*1000:.2f}ms")
+
+
+@bot.command
+@lightbulb.command("food", description="returns menu for the next break")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def food(ctx: lightbulb.Context) -> None:
+    HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
+    MEAL = "BREAKFAST"
+    if HOUR < 951 and HOUR > 1450:
+        MEAL = "LUNCH"
+    elif HOUR < 1451 and HOUR > 1805:
+        MEAL = "SNACKS"
+    elif HOUR < 1806 and HOUR > 2359:
+        MEAL = "DINNER"
+    answer = MEAL+"```\n"
+    for item in menu[ days[DAY] ][meals[MEAL]]:
+        answer = answer +  item+ "\n"
+    answer+= "```"
+    await ctx.respond(answer,mentions_everyone=True)
+
+@bot.command
+@lightbulb.option("menu","choose the menu",required=True,choices=["BREAKFAST","LUNCH","SNACKS","DINNER"])
+@lightbulb.command("menu", "menu")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def funcmenu(ctx: lightbulb.Context) -> None:
+    MEAL=ctx.options.menu
+    answer = MEAL+"```\n"
+    for item in menu[ days[DAY] ][meals[MEAL]]:
+        answer = answer +  item+ "\n"
+    answer+= "```"
+    await ctx.respond(answer,mentions_everyone=True)
 
 
 # @tasks.task(tasks.CronTrigger('0 7 * * *'), auto_start=True)
@@ -114,7 +154,7 @@ async def BreakFast():
     # print(HOUR)
     # if HOUR <= 700 and HOUR >= 300:
     MEAL = "BREAKFAST"
-    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} \n```\n <@everyone>' )
+    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} \n```\n <@everyone>',mentions_everyone=True )
 
 @tasks.task(tasks.CronTrigger('30 12 * * *'), auto_start=True)
 async def Lunch():
@@ -122,7 +162,7 @@ async def Lunch():
 
     # if HOUR <= 1230 and HOUR >= 1200:
     MEAL = "LUNCH"
-    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>' )
+    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True )
 
 @tasks.task(tasks.CronTrigger('0 16 * * *'), auto_start=True)
 async def Lunch():
@@ -130,17 +170,34 @@ async def Lunch():
 
     # if HOUR <= 1600 and HOUR >= 1530:
     MEAL = "SNACKS"
-    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>' )
+    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True)
 
 @tasks.task(tasks.CronTrigger('0 19 * * *'), auto_start=True)
 async def Lunch():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
     # if HOUR <= 1900 and HOUR >= 1830:
     MEAL = "DINNER"
-    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>' )
+    await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n @everyone',mentions_everyone=True)
 
 # scheduler.start() 
 
 
-bot.run() 
+@bot.listen()
+async def on_starting(event: hikari.StartingEvent) -> None:
+    bot.d.aio_session = aiohttp.ClientSession()
+
+@bot.listen()
+async def on_stopping(event: hikari.StoppingEvent) -> None:
+    await bot.d.aio_session.close()
+
+
+
+if __name__ == "__main__":
+    if os.name != "nt":
+        import uvloop
+
+        uvloop.install()
+
+    bot.run()
+
 
