@@ -1,6 +1,7 @@
 from http import client
 #import discord  
 import os
+from tokenize import Token
 import aiohttp
 import pandas as pd 
 import hikari
@@ -9,6 +10,9 @@ import time
 import asyncio
 import lightbulb
 from lightbulb.ext import tasks
+from dotenv import load_dotenv
+load_dotenv()
+
 
 df=pd.read_excel('/home/anakin513/Desktop/Menu_Bot/new_menu.xlsx') 
 
@@ -51,9 +55,9 @@ meals={
     "SNACKS": 3,
 }
 
-TOKEN = "OTY2NTAzMDM1Mzk0MTk5NTgy.GSdij5.5GL8Ln3A4PyyZoFTUXjiLyZ8VTwK6zn6NR0QE4"
 menu = processEXCEL(df) 
 DAY = datetime.datetime.today().strftime('%A')
+TOKEN=os.getenv("TOKEN")
 # bot = hikari.GatewayBot(TOKEN)
 bot = lightbulb.BotApp(TOKEN)
 tasks.load(bot)
