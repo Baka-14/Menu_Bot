@@ -8,7 +8,7 @@ import asyncio
 import lightbulb
 from lightbulb.ext import tasks
 
-df=pd.read_excel('/Users/apple/Desktop/Menu-Bot/bot/new_menu.xlsx') 
+df=pd.read_excel('/home/anakin513/Desktop/Menu_Bot/new_menu.xlsx') 
 
 def processEXCEL(df):
     df.drop(df.index[0], inplace = True)
@@ -55,7 +55,7 @@ DAY = datetime.datetime.today().strftime('%A')
 # bot = hikari.GatewayBot(TOKEN)
 bot = lightbulb.BotApp(TOKEN)
 tasks.load(bot)
-channel_id = "977533348278841356"
+channel_id = "952512991717384303"
 
 @bot.listen()
 async def on_message(event: hikari.MessageCreateEvent) -> None:
@@ -68,7 +68,10 @@ async def on_message(event: hikari.MessageCreateEvent) -> None:
     # if event.content=="!tag":
     #    await bot.rest.create_message(channel_id,"@everyone")
 
-    if event.content == "!food":
+    if event.content=="!ping":
+        await bot.rest.create_message(channel_id,"@everyone",mentions_everyone=True)
+
+    elif event.content == "!food":
         MEAL = "BREAKFAST"
         if HOUR < 951 and HOUR > 1450:
             MEAL = "LUNCH"
@@ -80,7 +83,7 @@ async def on_message(event: hikari.MessageCreateEvent) -> None:
         for item in menu[ days[DAY] ][meals[MEAL]]:
             answer = answer +  item+ "\n"
         answer+= "```"
-        await bot.rest.create_message(channel_id, answer+"@everyone")
+        await bot.rest.create_message(channel_id,answer+"@everyone",user_mentions=True)
 
     elif(event.content[0] == "!"):
         MEAL = (event.content)[1:].upper()
