@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-df=pd.read_excel('/home/anakin513/Desktop/Menu_Bot/new_menu.xlsx') 
+df=pd.read_excel('/Users/apple/Desktop/code/Menu_Bot/new_menu.xlsx') 
 
 def processEXCEL(df):
     df.drop(df.index[0], inplace = True)
