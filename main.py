@@ -13,18 +13,27 @@ from lightbulb.ext import tasks
 from dotenv import load_dotenv
 load_dotenv()
 
+import gspread as gs
 
-df=pd.read_excel('/Users/apple/Desktop/code/Menu_Bot/new_menu.xlsx') 
 
-def processEXCEL(df):
-    df.drop(df.index[0], inplace = True)
+def processEXCEL():
+    gc = gs.service_account(filename='service_account.json')
+    sh = gc.open_by_url('https://docs.google.com/spreadsheets/d/1h7k1JOX2zefqNP64izUIwwvmyofxw_PzO97c11YHUt0/edit?usp=sharing')
+
+    ws = sh.worksheet('Table 1')
+    df = pd.DataFrame(ws.get_all_records())
+
+    # df.drop(df.index[0], inplace = True)
     days_index = []
     cnt= 0
     for i in df['Day']:
-        if(not pd.isnull(i)):
+        if(i!=""):
             days_index.append(cnt)
         cnt+=1
     days_index.append(df.index[-1])
+
+    print(days_index)
+
 
     menu = {}
     for day in range(len(days_index)-1):
@@ -32,7 +41,7 @@ def processEXCEL(df):
         for meal in df.columns[1:]:
             puta= []
             for food in df[meal].iloc[days_index[day]:days_index[day+1]]:
-                if(not pd.isnull(food)):
+                if(food!=""):
                     puta.append(food)
             roju.append(puta)
         menu[day] = roju
@@ -55,7 +64,7 @@ meals={
     "SNACKS": 3,
 }
 
-menu = processEXCEL(df) 
+menu = processEXCEL() 
 DAY = datetime.datetime.today().strftime('%A')
 TOKEN=os.getenv("TOKEN")
 # bot = hikari.GatewayBot(TOKEN)
@@ -125,7 +134,7 @@ async def food(ctx: lightbulb.Context) -> None:
     for item in menu[ days[DAY] ][meals[MEAL]]:
         answer = answer +  item+ "\n"
     answer+= "```"
-    await ctx.respond(answer,mentions_everyone=True)
+    await ctx.respond(answer)
 
 @bot.command
 @lightbulb.option("menu","choose the menu",required=True,choices=["BREAKFAST","LUNCH","SNACKS","DINNER"])
@@ -137,14 +146,15 @@ async def funcmenu(ctx: lightbulb.Context) -> None:
     for item in menu[ days[DAY] ][meals[MEAL]]:
         answer = answer +  item+ "\n"
     answer+= "```"
-    await ctx.respond(answer,mentions_everyone=True)
+    await ctx.respond(answer)
 
+@bot.command
+@lightbulb.command("refresh","call this command to change menu")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def funcmenu(ctx: lightbulb.Context) -> None:
+    processEXCEL()
+    await ctx.respond("Done")
 
-# @tasks.task(tasks.CronTrigger('0 7 * * *'), auto_start=True)
-# async def everyday():
-#     print("HEllo")
-#     await  bot.rest.create_message(channel_id,"hello") 
-# everyday.start()
 
 def MakeString(lis):
     ans  = ""
@@ -169,7 +179,7 @@ async def Lunch():
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True )
 
 @tasks.task(tasks.CronTrigger('0 16 * * *'), auto_start=True)
-async def Lunch():
+async def Snacks():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
 
     # if HOUR <= 1600 and HOUR >= 1530:
@@ -177,7 +187,7 @@ async def Lunch():
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True)
 
 @tasks.task(tasks.CronTrigger('0 19 * * *'), auto_start=True)
-async def Lunch():
+async def Dinner():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
     # if HOUR <= 1900 and HOUR >= 1830:
     MEAL = "DINNER"
