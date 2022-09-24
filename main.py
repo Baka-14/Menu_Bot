@@ -72,45 +72,6 @@ bot = lightbulb.BotApp(TOKEN)
 tasks.load(bot)
 channel_id = "952512991717384303"
 
-@bot.listen()
-async def on_message(event: hikari.MessageCreateEvent) -> None:
-    """Listen for messages being created."""
-    if not event.is_human:
-        # Do not respond to bots or webhooks!
-        return
-
-    HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
-    # if event.content=="!tag":
-    #    await bot.rest.create_message(channel_id,"@everyone")
-
-    if event.content=="!ping":
-        await bot.rest.create_message(channel_id,"ping")
-
-    elif event.content == "!food":
-        MEAL = "BREAKFAST"
-        if HOUR < 951 and HOUR > 1450:
-            MEAL = "LUNCH"
-        elif HOUR < 1451 and HOUR > 1805:
-            MEAL = "SNACKS"
-        elif HOUR < 1806 and HOUR > 2359:
-            MEAL = "DINNER"
-        answer = "```\n"
-        for item in menu[ days[DAY] ][meals[MEAL]]:
-            answer = answer +  item+ "\n"
-        answer+= "```"
-        await bot.rest.create_message(channel_id,answer+"@everyone",mentions_everyone=True)
-
-    elif(event.content[0] == "!"):
-        MEAL = (event.content)[1:].upper()
-        if(MEAL=="BREAKFAST" or MEAL=="LUNCH" or MEAL=="DINNER" or MEAL=="SNACKS"):
-            answer = ""
-            for item in menu[ days[DAY] ][meals[MEAL]]:
-                answer = answer +  item+ "\n"
-            await bot.rest.create_message(channel_id,answer+"@everyone",mentions_everyone=True)
-        else:
-            await bot.rest.create_message(channel_id,"Did you ping me?! I don't understand the command tho.")
-
-
 @bot.command
 @lightbulb.command("ping", description="Whether the bot is working")
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -137,23 +98,39 @@ async def food(ctx: lightbulb.Context) -> None:
     await ctx.respond(answer)
 
 @bot.command
-@lightbulb.option("menu","choose the menu",required=True,choices=["BREAKFAST","LUNCH","SNACKS","DINNER"])
-@lightbulb.command("menu", "menu")
+@lightbulb.option("menu","choose the menu for today's-",required=True,choices=["BREAKFAST","LUNCH","SNACKS","DINNER"])
+@lightbulb.command("today-menu", "today-menu")
 @lightbulb.implements(lightbulb.SlashCommand)
-async def funcmenu(ctx: lightbulb.Context) -> None:
+async def todaymenu(ctx: lightbulb.Context) -> None:
     MEAL=ctx.options.menu
     answer = MEAL+"```\n"
     for item in menu[ days[DAY] ][meals[MEAL]]:
         answer = answer +  item+ "\n"
     answer+= "```"
-    await ctx.respond(answer)
+    await ctx.respond(answer,flags=hikari.MessageFlag.EPHEMERAL)
+
+
+
+@bot.command
+@lightbulb.option("menu","choose the menu you want",required=True,choices=["BREAKFAST","LUNCH","SNACKS","DINNER"])
+@lightbulb.option("day","choose the day",required=True,choices=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"])
+@lightbulb.command("menu", "menu")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def funcmenu(ctx: lightbulb.Context) -> None:
+    DAY=ctx.options.day
+    MEAL=ctx.options.menu
+    answer = DAY+"-"+MEAL+"```\n"
+    for item in menu[ days[DAY] ][meals[MEAL]]: 
+        answer = answer +  item+ "\n"
+    answer+= "```"
+    await ctx.respond(answer,flags=hikari.MessageFlag.EPHEMERAL)
 
 @bot.command
 @lightbulb.command("refresh","call this command to change menu")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def funcmenu(ctx: lightbulb.Context) -> None:
-    processEXCEL()
-    await ctx.respond("Done")
+    menu = processEXCEL() 
+    await ctx.respond("Done",flags=hikari.MessageFlag.EPHEMERAL)
 
 
 def MakeString(lis):
@@ -162,7 +139,7 @@ def MakeString(lis):
         ans += i + "\n"
     return ans 
 
-@tasks.task(tasks.CronTrigger('* 3 * * *'), auto_start=True)
+@tasks.task(tasks.CronTrigger('30 1 * * *'), auto_start=True) #7am ist
 async def BreakFast():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
     # print(HOUR)
@@ -170,7 +147,7 @@ async def BreakFast():
     MEAL = "BREAKFAST"
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} \n```\n <@everyone>',mentions_everyone=True )
 
-@tasks.task(tasks.CronTrigger('30 12 * * *'), auto_start=True)
+@tasks.task(tasks.CronTrigger('30 6 * * *'), auto_start=True)#12pm ist
 async def Lunch():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
 
@@ -178,7 +155,7 @@ async def Lunch():
     MEAL = "LUNCH"
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True )
 
-@tasks.task(tasks.CronTrigger('0 16 * * *'), auto_start=True)
+@tasks.task(tasks.CronTrigger('30 10 * * *'), auto_start=True)#4pm ist
 async def Snacks():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
 
@@ -186,14 +163,13 @@ async def Snacks():
     MEAL = "SNACKS"
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n <@everyone>',mentions_everyone=True)
 
-@tasks.task(tasks.CronTrigger('0 19 * * *'), auto_start=True)
+@tasks.task(tasks.CronTrigger('30 13 * * *'), auto_start=True)#7pm ist
 async def Dinner():
     HOUR = (datetime.datetime.now().hour)*100 + (datetime.datetime.now().minute)
     # if HOUR <= 1900 and HOUR >= 1830:
     MEAL = "DINNER"
     await bot.rest.create_message(channel_id, f'** {MEAL} **\n```  {MakeString(menu[ days[DAY] ][meals[MEAL]])} ```\n @everyone',mentions_everyone=True)
 
-# scheduler.start() 
 
 
 @bot.listen()
